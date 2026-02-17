@@ -7,6 +7,7 @@ import type { SystemDefinition } from '@rpgk/core';
 // Import all system definitions
 import cocDefinition from './coc/definition.ts';
 import dnd35Definition from './dnd35/definition.ts';
+import dolmenwoodDefinition from './dolmenwood/definition.ts';
 import { eoteDefinition, genesysDefinition } from './eote/definition.ts';
 import fateDefinition from './fate/definition.ts';
 import genericDefinition from './generic/definition.ts';
@@ -20,6 +21,7 @@ import { wfrpDefinition } from './wfrp/definition.ts';
 export const systems : Record<string, SystemDefinition> = {
     coc: cocDefinition,
     dnd35: dnd35Definition,
+    dolmenwood: dolmenwoodDefinition,
     eote: eoteDefinition,
     fate: fateDefinition,
     generic: genericDefinition,
@@ -34,6 +36,7 @@ export const systems : Record<string, SystemDefinition> = {
 
 export { cocDefinition };
 export { dnd35Definition };
+export { dolmenwoodDefinition };
 export { eoteDefinition, genesysDefinition };
 export { fateDefinition };
 export { genericDefinition };
@@ -45,6 +48,7 @@ export { wfrpDefinition };
 //----------------------------------------------------------------------------------------------------------------------
 
 export * from './coc/index.ts';
+export * from './dolmenwood/index.ts';
 export * from './eote/index.ts';
 export * from './fate/index.ts';
 export * from './risus/index.ts';

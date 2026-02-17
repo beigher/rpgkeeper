@@ -10,6 +10,7 @@ import { EoteCharacter } from './eote/client/index.ts';
 import { FateCharacter } from './fate/client/index.ts';
 import { RisusCharacter } from './risus/client/index.ts';
 import { WfrpCharacter } from './wfrp/client/index.ts';
+import { DolmenwoodCharacter } from './dolmenwood/client/index.ts';
 
 //----------------------------------------------------------------------------------------------------------------------
 // Character components map - lookup by system ID
@@ -22,6 +23,8 @@ export const characterComponents : Record<string, Component> = {
     fate: FateCharacter,
     risus: RisusCharacter,
     wfrp: WfrpCharacter,
+    dolmenwood: DolmenwoodCharacter,
+
     // dnd35 and generic have no Vue components
 };
 
@@ -34,5 +37,6 @@ export { EoteCharacter };
 export { FateCharacter };
 export { RisusCharacter };
 export { WfrpCharacter };
+export { DolmenwoodCharacter };
 
 //----------------------------------------------------------------------------------------------------------------------

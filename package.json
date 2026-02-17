@@ -10,7 +10,7 @@
   ],
   "scripts": {
     "start": "node ./src/server/src/server.ts",
-    "dev": "DEBUG=true node ./src/server/src/server.ts --dev",
+    "dev": "cross-env DEBUG=true node ./src/server/src/server.ts --dev",
     "build": "vite build",
     "db:migrate": "knex migrate:latest",
     "db:setup": "knex migrate:latest && knex seed:run",
@@ -84,6 +84,7 @@
     "bootstrap-vue-next": "^0.42.0",
     "chai": "^6.2.2",
     "codemirror": "^6.0.2",
+    "cross-env": "^10.1.0",
     "eslint": "^9.39.2",
     "eslint-plugin-vue": "^10.7.0",
     "fast-xml-parser": "^5.3.3",
