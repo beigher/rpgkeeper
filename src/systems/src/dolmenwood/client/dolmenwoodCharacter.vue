@@ -129,8 +129,11 @@
                                         <span class="badge bg-light text-dark">
                                             Mod: {{ abilityMod(ability.key) }}
                                         </span>
-                                        <BButton size="sm" variant="outline-secondary"
-                                            @click="rollD20(abilityModNumber(ability.key), ability.label)">
+                                        <BButton
+                                            size="sm"
+                                            variant="outline-secondary"
+                                            @click="rollD20(abilityModNumber(ability.key), ability.label)"
+                                        >
                                             Roll
                                         </BButton>
                                     </div>
@@ -152,8 +155,11 @@
                                     <BFormGroup :label="save.label">
                                         <div class="d-flex gap-2">
                                             <BFormInput v-model.number="details.saves[save.key]" type="number" />
-                                            <BButton size="sm" variant="outline-secondary"
-                                                @click="rollD20(toNumber(details.saves[save.key]), save.label)">
+                                            <BButton
+                                                size="sm"
+                                                variant="outline-secondary"
+                                                @click="rollD20(toNumber(details.saves[save.key]), save.label)"
+                                            >
                                                 Roll
                                             </BButton>
                                         </div>
@@ -249,328 +255,16 @@
                 </BRow>
 
                 <RpgkCard title="Notes" class="mt-3">
-                    <BFormTextarea v-model="details.notes" rows="6"
-                        placeholder="Session notes, NPCs, hooks, reminders…" />
+                    <BFormTextarea
+                        v-model="details.notes"
+                        rows="6"
+                        placeholder="Session notes, NPCs, hooks, reminders…"
+                    />
                 </RpgkCard>
             </BCol>
         </BRow>
     </div>
 </template>
-
-<script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
-import { storeToRefs } from 'pinia';
-import { useCharacterStore } from '@client/lib/resource-access/stores/characters';
-
-type AbilityKey = 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha';
-type SaveKey = 'doom' | 'ray' | 'hold';
-
-interface AbilityDef {
-    key: AbilityKey;
-    label: string;
-}
-
-interface SaveDef {
-    key: SaveKey;
-    label: string;
-}
-
-const storeInstance = useCharacterStore();
-const { current } = storeToRefs(storeInstance);
-const store = storeInstance as unknown as Record<string, unknown>;
-
-const abilityList: AbilityDef[] = [
-    { key: 'str', label: 'Strength' },
-    { key: 'dex', label: 'Dexterity' },
-    { key: 'con', label: 'Constitution' },
-    { key: 'int', label: 'Intelligence' },
-    { key: 'wis', label: 'Wisdom' },
-    { key: 'cha', label: 'Charisma' }
-];
-
-const saveList: SaveDef[] = [
-    { key: 'doom', label: 'Doom' },
-    { key: 'ray', label: 'Ray' },
-    { key: 'hold', label: 'Hold' }
-];
-
-function toNumber(value: unknown): number {
-    const num = Number(value);
-    if (Number.isFinite(num)) {
-        return num;
-    }
-    return 0;
-}
-
-function pad2(value: number): string {
-    return String(value).padStart(2, '0');
-}
-
-function formatTime(date: Date): string {
-    const hh = pad2(date.getHours());
-    const mm = pad2(date.getMinutes());
-    const ss = pad2(date.getSeconds());
-    return `${hh}:${mm}:${ss}`;
-}
-
-function makeEmptyDetails(): any {
-    const abilities: Record<AbilityKey, { score: number }> = {
-        str: { score: 10 },
-        dex: { score: 10 },
-        con: { score: 10 },
-        int: { score: 10 },
-        wis: { score: 10 },
-        cha: { score: 10 }
-    };
-
-    const saves: Record<SaveKey, number> = {
-        doom: 0,
-        ray: 0,
-        hold: 0
-    };
-
-    return {
-        identity: {
-            className: '',
-            race: '',
-            alignment: '',
-            deity: '',
-            background: ''
-        },
-
-        // NEW: portrait area
-        portrait: {
-            imageUrl: '',   // e.g. https://... or a local blob/data URL if you go that route later
-            caption: ''     // optional
-        },
-
-        abilities,
-        saves,
-
-        hpCurrent: 0,
-        hpMax: 0,
-        ac: 0,
-        attack: 0,
-
-        movement: {
-            speedRoundFt: 0,
-            exploringTurnFt: 0,
-            overlandPtsDay: 0
-        },
-
-        skills: {
-            listen: 0,
-            search: 0,
-            survival: 0,
-            modifier: 0
-        },
-
-        advancement: {
-            xp: 0,
-            level: 1,
-            nextLevel: 0
-        },
-
-        inventory: {
-            gearText: '',
-            totalWeight: 0,
-            coins: {
-                cp: 0,
-                sp: 0,
-                gp: 0,
-                pell: 0
-            }
-        },
-
-        // NEW: equipped items area
-        equipped: {
-            weapons: [
-                // example shape; you can start empty if you prefer
-                // { name : '', damage : '1d6', toHit : 0, notes : '', equipped : true }
-            ],
-            armor: [
-                // { name : '', ac : 0, notes : '', equipped : true }
-            ],
-            shield: {
-                name: '',
-                acBonus: 0,
-                notes: '',
-                equipped: false
-            },
-            misc: [
-                // { name : '', effect : '', notes : '', equipped : false }
-            ]
-        },
-
-        notes: ''
-    };
-}
-
-
-const details = computed<any>({
-    get() {
-        const character = current.value as any;
-
-        if (!character) {
-            return makeEmptyDetails();
-        }
-
-        if (!character.details) {
-            character.details = {};
-        }
-
-        if (!character.details.dolmenwood) {
-            character.details.dolmenwood = makeEmptyDetails();
-        }
-
-        return character.details.dolmenwood;
-    },
-    set(value) {
-        const character = current.value as any;
-
-        if (!character) {
-            return;
-        }
-
-        if (!character.details) {
-            character.details = {};
-        }
-
-        character.details.dolmenwood = value;
-    }
-});
-
-const rollExpr = ref<string>('1d20');
-const lastRoll = ref<string>('');
-const dirty = ref<boolean>(false);
-const saving = ref<boolean>(false);
-const lastSavedAt = ref<string>('');
-
-const hpPercent = computed<string>(() => {
-    const max = toNumber(details.value.hpMax);
-    const cur = toNumber(details.value.hpCurrent);
-    if (max <= 0) {
-        return '—';
-    }
-    const pct = Math.max(0, Math.min(100, Math.round((cur / max) * 100)));
-    return `${pct}%`;
-});
-
-const coinTotal = computed<number>(() => {
-    const coins = details.value.inventory?.coins ?? {};
-    return (
-        toNumber(coins.cp)
-        + toNumber(coins.sp)
-        + toNumber(coins.gp)
-        + toNumber(coins.pell)
-    );
-});
-
-function abilityModNumber(key: AbilityKey): number {
-    const score = toNumber(details.value.abilities?.[key]?.score);
-    return Math.floor((score - 10) / 2);
-}
-
-function abilityMod(key: AbilityKey): string {
-    const mod = abilityModNumber(key);
-    if (mod >= 0) {
-        return `+${mod}`;
-    }
-    return `${mod}`;
-}
-
-async function saveNow(): Promise<void> {
-    saving.value = true;
-
-    try {
-        const anyStore = store as any;
-
-        if (typeof anyStore.saveCurrent === 'function') {
-            await anyStore.saveCurrent();
-        }
-        else if (typeof anyStore.save === 'function') {
-            await anyStore.save();
-        }
-        else if (typeof anyStore.updateCurrent === 'function') {
-            await anyStore.updateCurrent();
-        }
-
-        dirty.value = false;
-        lastSavedAt.value = formatTime(new Date());
-    }
-    finally {
-        saving.value = false;
-    }
-}
-
-let autosaveTimer: number | null = null;
-let initialized = false;
-
-function scheduleAutosave() {
-    if (autosaveTimer !== null) {
-        window.clearTimeout(autosaveTimer);
-        autosaveTimer = null;
-    }
-
-    autosaveTimer = window.setTimeout(async () => {
-        autosaveTimer = null;
-
-        if (!dirty.value) {
-            return;
-        }
-
-        if (saving.value) {
-            return;
-        }
-
-        await saveNow();
-    }, 800);
-}
-
-watch(details, () => {
-    if (!initialized) {
-        initialized = true;
-        return;
-    }
-
-    dirty.value = true;
-    scheduleAutosave();
-}, { deep: true });
-
-function rollD20(modifier: number, label: string): void {
-    const rollValue = Math.floor(Math.random() * 20) + 1;
-    const total = rollValue + toNumber(modifier);
-
-    const modText = modifier >= 0 ? `+${modifier}` : `${modifier}`;
-    lastRoll.value = `${label}: d20(${rollValue}) ${modText} = ${total}`;
-}
-
-function roll(expr: string): void {
-    const trimmed = (expr ?? '').trim();
-    const match = trimmed.match(/^(\d+)d(\d+)(?:\s*\+\s*(\d+))?$/i);
-
-    if (!match) {
-        lastRoll.value = `Unsupported: ${trimmed}`;
-        return;
-    }
-
-    const count = parseInt(match[1], 10);
-    const die = parseInt(match[2], 10);
-    const add = match[3] ? parseInt(match[3], 10) : 0;
-
-    let total = add;
-    const rolls: number[] = [];
-
-    for (let idx = 0; idx < count; idx++) {
-        const rollValue = Math.floor(Math.random() * die) + 1;
-        rolls.push(rollValue);
-        total += rollValue;
-    }
-
-    const addText = add ? ` + ${add}` : '';
-    lastRoll.value = `${trimmed} = ${total} (${rolls.join(', ')}${addText})`;
-}
-</script>
 
 <style scoped>
 /* ===== Subtle contrast bump for dark UI (component-only) ===== */
@@ -658,3 +352,352 @@ function roll(expr: string): void {
     background: rgba(255, 255, 255, 0.06) !important;
 }
 </style>
+
+<script lang="ts" setup>
+    import { computed, ref, watch } from 'vue';
+    import { storeToRefs } from 'pinia';
+    import { useCharacterStore } from '@client/lib/resource-access/stores/characters';
+
+    type AbilityKey = 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha';
+    type SaveKey = 'doom' | 'ray' | 'hold';
+
+    interface AbilityDef {
+        key : AbilityKey;
+        label : string;
+    }
+
+    interface SaveDef {
+        key : SaveKey;
+        label : string;
+    }
+
+    const storeInstance = useCharacterStore();
+    const { current } = storeToRefs(storeInstance);
+    const store = storeInstance as unknown as Record<string, unknown>;
+
+    const abilityList : AbilityDef[] = [
+        { key: 'str', label: 'Strength' },
+        { key: 'dex', label: 'Dexterity' },
+        { key: 'con', label: 'Constitution' },
+        { key: 'int', label: 'Intelligence' },
+        { key: 'wis', label: 'Wisdom' },
+        { key: 'cha', label: 'Charisma' },
+    ];
+
+    const saveList : SaveDef[] = [
+        { key: 'doom', label: 'Doom' },
+        { key: 'ray', label: 'Ray' },
+        { key: 'hold', label: 'Hold' },
+    ];
+
+    function toNumber(value : unknown) : number 
+    {
+        const num = Number(value);
+        if(Number.isFinite(num)) 
+        {
+            return num;
+        }
+        return 0;
+    }
+
+    function pad2(value : number) : string 
+    {
+        return String(value).padStart(2, '0');
+    }
+
+    function formatTime(date : Date) : string 
+    {
+        const hh = pad2(date.getHours());
+        const mm = pad2(date.getMinutes());
+        const ss = pad2(date.getSeconds());
+        return `${ hh }:${ mm }:${ ss }`;
+    }
+
+    function makeEmptyDetails() : any 
+    {
+        const abilities : Record<AbilityKey, { score : number }> = {
+            str: { score: 10 },
+            dex: { score: 10 },
+            con: { score: 10 },
+            int: { score: 10 },
+            wis: { score: 10 },
+            cha: { score: 10 },
+        };
+
+        const saves : Record<SaveKey, number> = {
+            doom: 0,
+            ray: 0,
+            hold: 0,
+        };
+
+        return {
+            identity: {
+                className: '',
+                race: '',
+                alignment: '',
+                deity: '',
+                background: '',
+            },
+
+            // NEW: portrait area
+            portrait: {
+                imageUrl: '', // e.g. https://... or a local blob/data URL if you go that route later
+                caption: '', // optional
+            },
+
+            abilities,
+            saves,
+
+            hpCurrent: 0,
+            hpMax: 0,
+            ac: 0,
+            attack: 0,
+
+            movement: {
+                speedRoundFt: 0,
+                exploringTurnFt: 0,
+                overlandPtsDay: 0,
+            },
+
+            skills: {
+                listen: 0,
+                search: 0,
+                survival: 0,
+                modifier: 0,
+            },
+
+            advancement: {
+                xp: 0,
+                level: 1,
+                nextLevel: 0,
+            },
+
+            inventory: {
+                gearText: '',
+                totalWeight: 0,
+                coins: {
+                    cp: 0,
+                    sp: 0,
+                    gp: 0,
+                    pell: 0,
+                },
+            },
+
+            // NEW: equipped items area
+            equipped: {
+                weapons: [
+                // example shape; you can start empty if you prefer
+                // { name : '', damage : '1d6', toHit : 0, notes : '', equipped : true }
+                ],
+                armor: [
+                // { name : '', ac : 0, notes : '', equipped : true }
+                ],
+                shield: {
+                    name: '',
+                    acBonus: 0,
+                    notes: '',
+                    equipped: false,
+                },
+                misc: [
+                // { name : '', effect : '', notes : '', equipped : false }
+                ],
+            },
+
+            notes: '',
+        };
+    }
+
+    const details = computed<any>({
+        get() 
+        {
+            const character = current.value as any;
+
+            if(!character) 
+            {
+                return makeEmptyDetails();
+            }
+
+            if(!character.details) 
+            {
+                character.details = {};
+            }
+
+            if(!character.details.dolmenwood) 
+            {
+                character.details.dolmenwood = makeEmptyDetails();
+            }
+
+            return character.details.dolmenwood;
+        },
+        set(value) 
+        {
+            const character = current.value as any;
+
+            if(!character) 
+            {
+                return;
+            }
+
+            if(!character.details) 
+            {
+                character.details = {};
+            }
+
+            character.details.dolmenwood = value;
+        },
+    });
+
+    const rollExpr = ref<string>('1d20');
+    const lastRoll = ref<string>('');
+    const dirty = ref<boolean>(false);
+    const saving = ref<boolean>(false);
+    const lastSavedAt = ref<string>('');
+
+    const hpPercent = computed<string>(() => 
+    {
+        const max = toNumber(details.value.hpMax);
+        const cur = toNumber(details.value.hpCurrent);
+        if(max <= 0) 
+        {
+            return '—';
+        }
+        const pct = Math.max(0, Math.min(100, Math.round((cur / max) * 100)));
+        return `${ pct }%`;
+    });
+
+    const coinTotal = computed<number>(() => 
+    {
+        const coins = details.value.inventory?.coins ?? {};
+        return (
+            toNumber(coins.cp)
+            + toNumber(coins.sp)
+            + toNumber(coins.gp)
+            + toNumber(coins.pell)
+        );
+    });
+
+    function abilityModNumber(key : AbilityKey) : number 
+    {
+        const score = toNumber(details.value.abilities?.[key]?.score);
+        return Math.floor((score - 10) / 2);
+    }
+
+    function abilityMod(key : AbilityKey) : string 
+    {
+        const mod = abilityModNumber(key);
+        if(mod >= 0) 
+        {
+            return `+${ mod }`;
+        }
+        return `${ mod }`;
+    }
+
+    async function saveNow() : Promise<void> 
+    {
+        saving.value = true;
+
+        try 
+        {
+            const anyStore = store as any;
+
+            if(typeof anyStore.saveCurrent === 'function') 
+            {
+                await anyStore.saveCurrent();
+            }
+            else if(typeof anyStore.save === 'function') 
+            {
+                await anyStore.save();
+            }
+            else if(typeof anyStore.updateCurrent === 'function') 
+            {
+                await anyStore.updateCurrent();
+            }
+
+            dirty.value = false;
+            lastSavedAt.value = formatTime(new Date());
+        }
+        finally 
+        {
+            saving.value = false;
+        }
+    }
+
+    let autosaveTimer : number | null = null;
+    let initialized = false;
+
+    function scheduleAutosave() : void 
+    {
+        if(autosaveTimer !== null) 
+        {
+            window.clearTimeout(autosaveTimer);
+            autosaveTimer = null;
+        }
+
+        autosaveTimer = window.setTimeout(async () => 
+        {
+            autosaveTimer = null;
+
+            if(!dirty.value) 
+            {
+                return;
+            }
+
+            if(saving.value) 
+            {
+                return;
+            }
+
+            await saveNow();
+        }, 800);
+    }
+
+    watch(details, () => 
+    {
+        if(!initialized) 
+        {
+            initialized = true;
+            return;
+        }
+
+        dirty.value = true;
+        scheduleAutosave();
+    }, { deep: true });
+
+    function rollD20(modifier : number, label : string) : void 
+    {
+        const rollValue = Math.floor(Math.random() * 20) + 1;
+        const total = rollValue + toNumber(modifier);
+
+        const modText = modifier >= 0 ? `+${ modifier }` : `${ modifier }`;
+        lastRoll.value = `${ label }: d20(${ rollValue }) ${ modText } = ${ total }`;
+    }
+
+    function roll(expr : string) : void 
+    {
+        const trimmed = (expr ?? '').trim();
+        const match = trimmed.match(/^(\d+)d(\d+)(?:\s*\+\s*(\d+))?$/i);
+
+        if(!match) 
+        {
+            lastRoll.value = `Unsupported: ${ trimmed }`;
+            return;
+        }
+
+        const count = parseInt(match[1], 10);
+        const die = parseInt(match[2], 10);
+        const add = match[3] ? parseInt(match[3], 10) : 0;
+
+        let total = add;
+        const rolls : number[] = [];
+
+        for(let idx = 0; idx < count; idx++) 
+        {
+            const rollValue = Math.floor(Math.random() * die) + 1;
+            rolls.push(rollValue);
+            total += rollValue;
+        }
+
+        const addText = add ? ` + ${ add }` : '';
+        lastRoll.value = `${ trimmed } = ${ total } (${ rolls.join(', ') }${ addText })`;
+    }
+</script>

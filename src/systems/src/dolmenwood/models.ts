@@ -31,9 +31,9 @@ export interface DolmenwoodSaves
 
 export interface DolmenwoodMovement
 {
-    speedRoundFt : number;     // feet / round
-    exploringTurnFt : number;  // feet / turn
-    overlandPtsDay : number;   // points / day
+    speedRoundFt : number; // feet / round
+    exploringTurnFt : number; // feet / turn
+    overlandPtsDay : number; // points / day
 }
 
 export interface DolmenwoodSkills
@@ -61,9 +61,9 @@ export interface DolmenwoodInventory
     tinyItems : string;
 
     equippedItems : string; // newline separated for MVP
-    stowedItems : string;   // newline separated for MVP
+    stowedItems : string; // newline separated for MVP
 
-    totalWeight : number;   // user-entered for MVP
+    totalWeight : number; // user-entered for MVP
 
     coins : DolmenwoodCoins;
 
