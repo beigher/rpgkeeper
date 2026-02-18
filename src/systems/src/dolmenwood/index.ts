@@ -4,6 +4,7 @@
 
 export { default } from './definition.ts';
 export * from './models.ts';
+export * from './encumbrance.ts';
 export { default as dolmenwoodDetailsSchema } from './schema.ts';
 
 //----------------------------------------------------------------------------------------------------------------------

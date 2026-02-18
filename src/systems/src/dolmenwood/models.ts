@@ -63,11 +63,19 @@ export interface DolmenwoodInventory
     equippedItems : string; // newline separated for MVP
     stowedItems : string; // newline separated for MVP
 
+    items : DolmenwoodInventoryItem[];
+
     totalWeight : number; // user-entered for MVP
 
     coins : DolmenwoodCoins;
 
     otherNotes : string;
+}
+
+export interface DolmenwoodInventoryItem
+{
+    name : string;
+    weight : number;
 }
 
 export interface DolmenwoodIdentity
@@ -111,6 +119,8 @@ export interface DolmenwoodSystemDetails
 
     // Page 2 - Inventory / encumbrance / coins / notes
     inventory : DolmenwoodInventory;
+
+    derivedEncumbrance : number;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

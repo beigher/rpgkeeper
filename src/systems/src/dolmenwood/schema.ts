@@ -79,11 +79,18 @@ const coinsSchema = z.object({
         .min(0),
 });
 
+const inventoryItemSchema = z.object({
+    name: z.string(),
+    weight: z.number()
+        .min(0),
+});
+
 const inventorySchema = z.object({
     encumbranceMethod: z.enum([ 'weight', 'slots' ]),
     tinyItems: z.string(),
     equippedItems: z.string(),
     stowedItems: z.string(),
+    items: z.array(inventoryItemSchema),
     totalWeight: z.number().min(0),
     coins: coinsSchema,
     otherNotes: z.string(),
@@ -111,6 +118,9 @@ export const dolmenwoodDetailsSchema = z.object({
     classTraits: z.string(),
 
     inventory: inventorySchema,
+
+    derivedEncumbrance: z.number()
+        .min(0),
 }) satisfies z.ZodType<DolmenwoodSystemDetails>;
 
 //----------------------------------------------------------------------------------------------------------------------

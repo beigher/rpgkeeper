@@ -1,15 +1,49 @@
 <template>
     <div class="sheet p-3">
-        <div class="d-flex align-items-center mb-3 header-bar">
-            <div>
-                <h3 class="m-0">
-                    Dolmenwood
-                </h3>
-                <div class="small text-muted">
-                    <span v-if="dirty" class="badge bg-warning text-dark me-2">● Unsaved</span>
-                    <span v-else class="badge bg-success me-2">✓ Saved</span>
-                    <span v-if="saving" class="ms-1">Saving…</span>
-                    <span v-else-if="lastSavedAt" class="ms-1">Last saved: {{ lastSavedAt }}</span>
+        <div class="d-flex align-items-start mb-3 header-bar">
+            <div class="d-flex align-items-start flex-grow-1 me-2">
+                <div class="portrait-wrap me-2">
+                    <img
+                        v-if="portraitUrl && !portraitLoadError"
+                        :src="portraitUrl"
+                        alt="Character portrait"
+                        class="portrait-thumb"
+                        @error="portraitLoadError = true"
+                    >
+                    <div v-else class="portrait-placeholder">
+                        No portrait
+                    </div>
+                </div>
+
+                <div class="flex-grow-1">
+                    <h3 class="m-0">
+                        {{ characterName }}
+                    </h3>
+                    <div class="small text-muted">
+                        <div>
+                            HP: <strong>{{ toNumber(details.hpCurrent) }} / {{ toNumber(details.hpMax) }} ({{ hpPercent }})</strong>
+                        </div>
+                        <BProgress class="mt-1 mb-1" height="6px">
+                            <BProgressBar :value="hpPercentValue" />
+                        </BProgress>
+                        <div>
+                            <span v-if="dirty" class="badge bg-warning text-dark me-2">● Unsaved</span>
+                            <span v-else class="badge bg-success me-2">✓ Saved</span>
+                            <span v-if="saving" class="ms-1">Saving…</span>
+                            <span v-else-if="lastSavedAt" class="ms-1">Last saved: {{ lastSavedAt }}</span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-1 mt-2 portrait-input-row">
+                        <BFormInput
+                            v-model="portraitUrl"
+                            placeholder="Portrait URL"
+                            size="sm"
+                        />
+                        <BButton size="sm" variant="outline-secondary" :disabled="!portraitUrl" @click="clearPortrait">
+                            Clear
+                        </BButton>
+                    </div>
                 </div>
             </div>
 
@@ -220,9 +254,57 @@
                                 <BFormTextarea v-model="details.inventory.gearText" rows="6" />
                             </BFormGroup>
 
-                            <BFormGroup label="Total Weight (if using weight)">
-                                <BFormInput v-model.number="details.inventory.totalWeight" type="number" />
-                            </BFormGroup>
+                            <div class="d-flex align-items-center mb-2">
+                                <h6 class="m-0">
+                                    Item Weights
+                                </h6>
+                                <BButton size="sm" variant="outline-secondary" class="ms-auto" @click="addInventoryItem">
+                                    Add Item
+                                </BButton>
+                            </div>
+
+                            <div v-if="Array.isArray(details.inventory.items) && details.inventory.items.length > 0">
+                                <BRow
+                                    v-for="(item, index) in details.inventory.items"
+                                    :key="index"
+                                    class="g-2 mb-1 align-items-end"
+                                >
+                                    <BCol cols="8">
+                                        <BFormGroup label="Item">
+                                            <BFormInput v-model="item.name" />
+                                        </BFormGroup>
+                                    </BCol>
+                                    <BCol cols="3">
+                                        <BFormGroup label="Weight">
+                                            <BFormInput v-model.number="item.weight" type="number" min="0" step="0.1" />
+                                        </BFormGroup>
+                                    </BCol>
+                                    <BCol cols="1">
+                                        <BButton
+                                            size="sm"
+                                            variant="outline-danger"
+                                            class="w-100"
+                                            @click="removeInventoryItem(index)"
+                                        >
+                                            ×
+                                        </BButton>
+                                    </BCol>
+                                </BRow>
+                            </div>
+
+                            <div v-else class="small text-muted mb-2">
+                                No weighted items yet.
+                            </div>
+
+                            <div class="small text-muted mb-2">
+                                Item weight total: <strong>{{ itemWeightTotal }}</strong>
+                            </div>
+                            <div class="small text-muted mb-2">
+                                Strength score: <strong>{{ toNumber(details.abilities?.str?.score) }}</strong>
+                            </div>
+                            <div class="small text-muted mb-2">
+                                Derived encumbrance: <strong>{{ derivedEncumbrance }}</strong>
+                            </div>
 
                             <div class="small text-muted mb-2">
                                 Total coins: <strong>{{ coinTotal }}</strong> (cp+sp+gp+pell)
@@ -351,12 +433,60 @@
 :deep(.btn-outline-light:hover) {
     background: rgba(255, 255, 255, 0.06) !important;
 }
+
+.portrait-wrap {
+    width: 80px;
+    min-width: 80px;
+}
+
+.portrait-thumb,
+.portrait-placeholder {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+}
+
+.portrait-thumb {
+    object-fit: cover;
+    display: block;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.portrait-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: #b9c3d1;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    text-align: center;
+    padding: 0.25rem;
+}
+
+.portrait-input-row {
+    max-width: 420px;
+}
+
+@media (max-width: 576px) {
+    .portrait-wrap {
+        width: 64px;
+        min-width: 64px;
+    }
+
+    .portrait-thumb,
+    .portrait-placeholder {
+        width: 64px;
+        height: 64px;
+    }
+}
 </style>
 
 <script lang="ts" setup>
     import { computed, ref, watch } from 'vue';
     import { storeToRefs } from 'pinia';
     import { useCharacterStore } from '@client/lib/resource-access/stores/characters';
+    import { calculateDerivedEncumbrance, sumItemWeights } from '../encumbrance.ts';
 
     type AbilityKey = 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha';
     type SaveKey = 'doom' | 'ray' | 'hold';
@@ -369,6 +499,12 @@
     interface SaveDef {
         key : SaveKey;
         label : string;
+    }
+
+    interface InventoryItem
+    {
+        name : string;
+        weight : number;
     }
 
     const storeInstance = useCharacterStore();
@@ -474,6 +610,7 @@
 
             inventory: {
                 gearText: '',
+                items: [],
                 totalWeight: 0,
                 coins: {
                     cp: 0,
@@ -504,6 +641,7 @@
             },
 
             notes: '',
+            derivedEncumbrance: 0,
         };
     }
 
@@ -552,6 +690,27 @@
     const dirty = ref<boolean>(false);
     const saving = ref<boolean>(false);
     const lastSavedAt = ref<string>('');
+    const portraitLoadError = ref<boolean>(false);
+
+    const characterName = computed<string>(() =>
+    {
+        const name = current.value?.name?.trim() ?? '';
+        return name || 'Unnamed Character';
+    });
+
+    const portraitUrl = computed<string>({
+        get() : string
+        {
+            return current.value?.portrait ?? '';
+        },
+        set(value : string)
+        {
+            if(current.value)
+            {
+                current.value.portrait = value;
+            }
+        },
+    });
 
     const hpPercent = computed<string>(() => 
     {
@@ -565,6 +724,22 @@
         return `${ pct }%`;
     });
 
+    const hpPercentValue = computed<number>(() =>
+    {
+        if(hpPercent.value === '—')
+        {
+            return 0;
+        }
+
+        const parsed = Number(hpPercent.value.replace('%', ''));
+        if(Number.isFinite(parsed))
+        {
+            return Math.max(0, Math.min(100, parsed));
+        }
+
+        return 0;
+    });
+
     const coinTotal = computed<number>(() => 
     {
         const coins = details.value.inventory?.coins ?? {};
@@ -574,6 +749,19 @@
             + toNumber(coins.gp)
             + toNumber(coins.pell)
         );
+    });
+
+    const itemWeightTotal = computed<number>(() =>
+    {
+        const items = Array.isArray(details.value.inventory?.items) ? details.value.inventory.items : [];
+        return sumItemWeights(items as InventoryItem[]);
+    });
+
+    const derivedEncumbrance = computed<number>(() =>
+    {
+        const items = Array.isArray(details.value.inventory?.items) ? details.value.inventory.items : [];
+        const strengthScore = toNumber(details.value.abilities?.str?.score);
+        return calculateDerivedEncumbrance(items as InventoryItem[], strengthScore);
     });
 
     function abilityModNumber(key : AbilityKey) : number 
@@ -598,6 +786,9 @@
 
         try 
         {
+            details.value.inventory.totalWeight = itemWeightTotal.value;
+            details.value.derivedEncumbrance = derivedEncumbrance.value;
+
             const anyStore = store as any;
 
             if(typeof anyStore.saveCurrent === 'function') 
@@ -620,6 +811,34 @@
         {
             saving.value = false;
         }
+    }
+
+    function addInventoryItem() : void
+    {
+        if(!Array.isArray(details.value.inventory.items))
+        {
+            details.value.inventory.items = [];
+        }
+
+        details.value.inventory.items.push({
+            name: '',
+            weight: 0,
+        });
+    }
+
+    function removeInventoryItem(index : number) : void
+    {
+        if(!Array.isArray(details.value.inventory.items))
+        {
+            return;
+        }
+
+        details.value.inventory.items.splice(index, 1);
+    }
+
+    function clearPortrait() : void
+    {
+        portraitUrl.value = '';
     }
 
     let autosaveTimer : number | null = null;
@@ -662,6 +881,22 @@
         dirty.value = true;
         scheduleAutosave();
     }, { deep: true });
+
+    let portraitInitialized = false;
+
+    watch(portraitUrl, () =>
+    {
+        portraitLoadError.value = false;
+
+        if(!portraitInitialized)
+        {
+            portraitInitialized = true;
+            return;
+        }
+
+        dirty.value = true;
+        scheduleAutosave();
+    });
 
     function rollD20(modifier : number, label : string) : void 
     {
