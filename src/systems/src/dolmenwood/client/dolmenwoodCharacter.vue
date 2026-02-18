@@ -183,23 +183,55 @@
 
                 <BRow class="g-3 mt-0">
                     <BCol cols="12" lg="6">
-                        <RpgkCard title="Saves">
-                            <BRow class="g-2">
-                                <BCol v-for="save in saveList" :key="save.key" cols="4" class="mb-2">
-                                    <BFormGroup :label="save.label">
-                                        <div class="d-flex gap-2">
-                                            <BFormInput v-model.number="details.saves[save.key]" type="number" />
-                                            <BButton
-                                                size="sm"
-                                                variant="outline-secondary"
-                                                @click="rollD20(toNumber(details.saves[save.key]), save.label)"
+                        <RpgkCard title="Save Targets">
+                            <div class="d-flex gap-3 align-items-start">
+                                <div class="flex-grow-1 save-targets-grid">
+                                    <div v-for="save in saveList" :key="save.key" class="save-target-item">
+                                        <div class="mb-2">
+                                            <BFormGroup :label="save.label">
+                                                <div class="d-flex gap-2">
+                                                    <BFormInput v-model.number="details.saves[save.key]" type="number" />
+                                                    <BButton
+                                                        size="sm"
+                                                        variant="outline-secondary"
+                                                        @click="rollSaveTarget(save.key)"
+                                                    >
+                                                        Roll
+                                                    </BButton>
+                                                </div>
+                                            </BFormGroup>
+                                            <div
+                                                v-if="saveRollResults[save.key]"
+                                                class="small mt-1"
+                                                :class="saveRollResults[save.key]?.passed ? 'text-success' : 'text-danger'"
                                             >
-                                                Roll
-                                            </BButton>
+                                                d20({{ saveRollResults[save.key]?.roll }})
+                                                + {{ formatSigned(toNumber(saveBonus)) }}
+                                                = {{ saveRollResults[save.key]?.total }}
+                                                vs {{ saveRollResults[save.key]?.target }}:
+                                                <strong>{{ saveRollResults[save.key]?.passed ? 'PASS!' : 'FAIL!' }}</strong>
+                                            </div>
                                         </div>
+                                    </div>
+                                </div>
+
+                                <div class="ms-auto mr-column">
+                                    <BFormGroup label="Save Bonus">
+                                        <BFormInput
+                                            v-model.number="saveBonus"
+                                            type="number"
+                                            class="mr-input"
+                                        />
                                     </BFormGroup>
-                                </BCol>
-                            </BRow>
+                                    <BFormGroup label="Magic Resistance">
+                                        <BFormInput
+                                            v-model.number="details.saves.resistance"
+                                            type="number"
+                                            class="mr-input"
+                                        />
+                                    </BFormGroup>
+                                </div>
+                            </div>
                         </RpgkCard>
 
                         <RpgkCard title="Movement" class="mt-3">
@@ -468,6 +500,26 @@
     max-width: 420px;
 }
 
+.save-targets-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.save-target-item {
+    min-width: 130px;
+    flex: 1 1 130px;
+}
+
+.mr-column {
+    min-width: 90px;
+}
+
+.mr-input {
+    width: 82px;
+    min-width: 82px;
+}
+
 @media (max-width: 576px) {
     .portrait-wrap {
         width: 64px;
@@ -479,6 +531,10 @@
         width: 64px;
         height: 64px;
     }
+
+    .mr-column {
+        margin-left: 0 !important;
+    }
 }
 </style>
 
@@ -489,7 +545,7 @@
     import { calculateDerivedEncumbrance, sumItemWeights } from '../encumbrance.ts';
 
     type AbilityKey = 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha';
-    type SaveKey = 'doom' | 'ray' | 'hold';
+    type SaveKey = 'doom' | 'ray' | 'hold' | 'blast' | 'spell';
 
     interface AbilityDef {
         key : AbilityKey;
@@ -524,6 +580,8 @@
         { key: 'doom', label: 'Doom' },
         { key: 'ray', label: 'Ray' },
         { key: 'hold', label: 'Hold' },
+        { key: 'blast', label: 'Blast' },
+        { key: 'spell', label: 'Spell' },
     ];
 
     function toNumber(value : unknown) : number 
@@ -560,10 +618,14 @@
             cha: { score: 10 },
         };
 
-        const saves : Record<SaveKey, number> = {
+        const saves : Record<SaveKey | 'magic' | 'resistance', number> = {
             doom: 0,
             ray: 0,
             hold: 0,
+            blast: 0,
+            spell: 0,
+            magic: 0,
+            resistance: 0,
         };
 
         return {
@@ -691,6 +753,13 @@
     const saving = ref<boolean>(false);
     const lastSavedAt = ref<string>('');
     const portraitLoadError = ref<boolean>(false);
+    const saveBonus = ref<number>(0);
+    const saveRollResults = ref<Partial<Record<SaveKey, {
+        roll : number;
+        total : number;
+        target : number;
+        passed : boolean;
+    }>>>({});
 
     const characterName = computed<string>(() =>
     {
@@ -778,6 +847,15 @@
             return `+${ mod }`;
         }
         return `${ mod }`;
+    }
+
+    function formatSigned(value : number) : string
+    {
+        if(value >= 0)
+        {
+            return `+${ value }`;
+        }
+        return `${ value }`;
     }
 
     async function saveNow() : Promise<void> 
@@ -905,6 +983,22 @@
 
         const modText = modifier >= 0 ? `+${ modifier }` : `${ modifier }`;
         lastRoll.value = `${ label }: d20(${ rollValue }) ${ modText } = ${ total }`;
+    }
+
+    function rollSaveTarget(saveKey : SaveKey) : void
+    {
+        const rollValue = Math.floor(Math.random() * 20) + 1;
+        const bonus = toNumber(saveBonus.value);
+        const target = toNumber(details.value.saves?.[saveKey]);
+        const total = rollValue + bonus;
+        const passed = total > target;
+
+        saveRollResults.value[saveKey] = {
+            roll: rollValue,
+            total,
+            target,
+            passed,
+        };
     }
 
     function roll(expr : string) : void 
