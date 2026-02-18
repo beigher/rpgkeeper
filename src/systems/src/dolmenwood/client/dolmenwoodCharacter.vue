@@ -47,23 +47,51 @@
                 </div>
             </div>
 
-            <div class="ms-auto d-flex gap-2 align-items-center">
-                <div class="d-flex align-items-center gap-2">
+            <div class="ms-auto d-flex flex-column align-items-end header-rolls-column">
+                <div class="d-flex gap-2 align-items-center mb-2 w-100">
                     <BFormInput v-model="rollExpr" class="roll-input" placeholder="1d20 + 2" size="sm" />
                     <BButton size="sm" variant="outline-primary" @click="roll(rollExpr)">
                         Roll
                     </BButton>
+                    <BButton size="sm" :disabled="!dirty || saving" variant="primary" @click="saveNow">
+                        Save
+                    </BButton>
                 </div>
 
-                <BButton size="sm" :disabled="!dirty || saving" variant="primary" @click="saveNow">
-                    Save
-                </BButton>
-            </div>
-        </div>
-
-        <div v-if="lastRoll" class="mb-3">
-            <div class="roll-output">
-                {{ lastRoll }}
+                <div class="roll-results-panel">
+                    <div class="d-flex align-items-center mb-1">
+                        <strong>Roll Results</strong>
+                        <BButton
+                            size="sm"
+                            variant="outline-secondary"
+                            class="ms-auto"
+                            :disabled="rollLog.length === 0"
+                            @click="clearRollLog"
+                        >
+                            Clear
+                        </BButton>
+                    </div>
+                    <div v-if="rollLog.length === 0" class="small text-muted">
+                        No rolls yet.
+                    </div>
+                    <div v-else class="roll-results-list">
+                        <div v-for="(entry, index) in rollLog" :key="index" class="roll-result-entry small">
+                            <div class="d-flex">
+                                <span class="text-muted">{{ entry.timestamp }}</span>
+                                <span class="ms-2">{{ entry.rollType }}: {{ entry.label }}</span>
+                                <span v-if="entry.passed !== null" class="ms-auto" :class="entry.passed ? 'text-success' : 'text-danger'">
+                                    <strong>{{ entry.passed ? 'PASS' : 'FAIL' }}</strong>
+                                </span>
+                            </div>
+                            <div>
+                                {{ entry.formula }} => d20({{ entry.die }}) + {{ entry.bonus }} = {{ entry.total }}
+                                <span v-if="entry.target !== null">
+                                    vs {{ entry.target }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -200,17 +228,6 @@
                                                     </BButton>
                                                 </div>
                                             </BFormGroup>
-                                            <div
-                                                v-if="saveRollResults[save.key]"
-                                                class="small mt-1"
-                                                :class="saveRollResults[save.key]?.passed ? 'text-success' : 'text-danger'"
-                                            >
-                                                d20({{ saveRollResults[save.key]?.roll }})
-                                                + {{ formatSigned(toNumber(saveBonus)) }}
-                                                = {{ saveRollResults[save.key]?.total }}
-                                                vs {{ saveRollResults[save.key]?.target }}:
-                                                <strong>{{ saveRollResults[save.key]?.passed ? 'PASS!' : 'FAIL!' }}</strong>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -500,6 +517,32 @@
     max-width: 420px;
 }
 
+.header-rolls-column {
+    width: 380px;
+    min-width: 320px;
+}
+
+.roll-results-panel {
+    width: 100%;
+    min-width: 320px;
+    max-width: 420px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.roll-results-list {
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.roll-result-entry + .roll-result-entry {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
 .save-targets-grid {
     display: flex;
     flex-wrap: wrap;
@@ -521,6 +564,21 @@
 }
 
 @media (max-width: 576px) {
+    .header-bar {
+        flex-wrap: wrap;
+    }
+
+    .header-rolls-column {
+        width: 100%;
+        min-width: 0;
+        margin-top: 0.5rem;
+    }
+
+    .roll-results-panel {
+        min-width: 0;
+        max-width: 100%;
+    }
+
     .portrait-wrap {
         width: 64px;
         min-width: 64px;
@@ -754,12 +812,17 @@
     const lastSavedAt = ref<string>('');
     const portraitLoadError = ref<boolean>(false);
     const saveBonus = ref<number>(0);
-    const saveRollResults = ref<Partial<Record<SaveKey, {
-        roll : number;
+    const rollLog = ref<{
+        timestamp : string;
+        rollType : string;
+        label : string;
+        formula : string;
+        die : number;
+        bonus : number;
         total : number;
-        target : number;
-        passed : boolean;
-    }>>>({});
+        target : number | null;
+        passed : boolean | null;
+    }[]>([]);
 
     const characterName = computed<string>(() =>
     {
@@ -856,6 +919,40 @@
             return `+${ value }`;
         }
         return `${ value }`;
+    }
+
+    function addRollLogEntry(entry : {
+        rollType : string;
+        label : string;
+        formula : string;
+        die : number;
+        bonus : number;
+        total : number;
+        target ?: number;
+        passed ?: boolean;
+    }) : void
+    {
+        rollLog.value.unshift({
+            timestamp: formatTime(new Date()),
+            rollType: entry.rollType,
+            label: entry.label,
+            formula: entry.formula,
+            die: entry.die,
+            bonus: entry.bonus,
+            total: entry.total,
+            target: entry.target ?? null,
+            passed: entry.passed ?? null,
+        });
+
+        if(rollLog.value.length > 15)
+        {
+            rollLog.value = rollLog.value.slice(0, 15);
+        }
+    }
+
+    function clearRollLog() : void
+    {
+        rollLog.value = [];
     }
 
     async function saveNow() : Promise<void> 
@@ -980,9 +1077,14 @@
     {
         const rollValue = Math.floor(Math.random() * 20) + 1;
         const total = rollValue + toNumber(modifier);
-
-        const modText = modifier >= 0 ? `+${ modifier }` : `${ modifier }`;
-        lastRoll.value = `${ label }: d20(${ rollValue }) ${ modText } = ${ total }`;
+        addRollLogEntry({
+            rollType: 'Check',
+            label,
+            formula: `1d20 ${ formatSigned(modifier) }`,
+            die: rollValue,
+            bonus: modifier,
+            total,
+        });
     }
 
     function rollSaveTarget(saveKey : SaveKey) : void
@@ -992,13 +1094,18 @@
         const target = toNumber(details.value.saves?.[saveKey]);
         const total = rollValue + bonus;
         const passed = total > target;
+        const label = saveList.find((save) => save.key === saveKey)?.label ?? 'Save';
 
-        saveRollResults.value[saveKey] = {
-            roll: rollValue,
+        addRollLogEntry({
+            rollType: 'Save',
+            label: `${ label } Save`,
+            formula: `1d20 ${ formatSigned(bonus) }`,
+            die: rollValue,
+            bonus,
             total,
             target,
             passed,
-        };
+        });
     }
 
     function roll(expr : string) : void 
@@ -1008,12 +1115,19 @@
 
         if(!match) 
         {
-            lastRoll.value = `Unsupported: ${ trimmed }`;
+            addRollLogEntry({
+                rollType: 'Roll',
+                label: 'Manual Roll',
+                formula: trimmed,
+                die: 0,
+                bonus: 0,
+                total: 0,
+            });
             return;
         }
 
         const count = parseInt(match[1], 10);
-        const die = parseInt(match[2], 10);
+        const dieSides = parseInt(match[2], 10);
         const add = match[3] ? parseInt(match[3], 10) : 0;
 
         let total = add;
@@ -1021,12 +1135,18 @@
 
         for(let idx = 0; idx < count; idx++) 
         {
-            const rollValue = Math.floor(Math.random() * die) + 1;
+            const rollValue = Math.floor(Math.random() * dieSides) + 1;
             rolls.push(rollValue);
             total += rollValue;
         }
-
-        const addText = add ? ` + ${ add }` : '';
-        lastRoll.value = `${ trimmed } = ${ total } (${ rolls.join(', ') }${ addText })`;
+        const die = rolls.length === 1 ? rolls[0] : rolls.reduce((sum, value) => sum + value, 0);
+        addRollLogEntry({
+            rollType: 'Roll',
+            label: 'Manual Roll',
+            formula: trimmed,
+            die,
+            bonus: add,
+            total,
+        });
     }
 </script>
