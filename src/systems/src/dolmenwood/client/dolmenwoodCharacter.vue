@@ -1,8 +1,8 @@
 <template>
     <div class="sheet p-3">
-        <div class="d-flex align-items-start mb-3 header-bar">
-            <div class="d-flex align-items-start flex-grow-1 me-2">
-                <div class="portrait-wrap me-2">
+        <div class="sheet-layout">
+            <div class="portrait-rail">
+                <div class="portrait-wrap dw-card">
                     <img
                         v-if="portraitUrl && !portraitLoadError"
                         :src="portraitUrl"
@@ -14,204 +14,272 @@
                         No portrait
                     </div>
                 </div>
-
-                <div class="flex-grow-1">
-                    <h3 class="m-0">
-                        {{ characterName }}
-                    </h3>
-                    <div class="small text-muted">
-                        <div>
-                            HP: <strong>{{ toNumber(details.hpCurrent) }} / {{ toNumber(details.hpMax) }} ({{ hpPercent }})</strong>
-                        </div>
-                        <BProgress class="mt-1 mb-1" height="6px">
-                            <BProgressBar :value="hpPercentValue" />
-                        </BProgress>
-                        <div>
-                            <span v-if="dirty" class="badge bg-warning text-dark me-2">● Unsaved</span>
-                            <span v-else class="badge bg-success me-2">✓ Saved</span>
-                            <span v-if="saving" class="ms-1">Saving…</span>
-                            <span v-else-if="lastSavedAt" class="ms-1">Last saved: {{ lastSavedAt }}</span>
-                        </div>
-                    </div>
-
-                    <div class="d-flex gap-1 mt-2 portrait-input-row">
-                        <BFormInput
-                            v-model="portraitUrl"
-                            placeholder="Portrait URL"
-                            size="sm"
-                        />
-                        <BButton size="sm" variant="outline-secondary" :disabled="!portraitUrl" @click="clearPortrait">
-                            Clear
-                        </BButton>
-                    </div>
-                </div>
             </div>
 
-            <div class="ms-auto d-flex flex-column align-items-end header-rolls-column">
-                <div class="d-flex gap-2 align-items-center mb-2 w-100">
-                    <BFormInput v-model="rollExpr" class="roll-input" placeholder="1d20 + 2" size="sm" />
-                    <BButton size="sm" variant="outline-primary" @click="roll(rollExpr)">
-                        Roll
-                    </BButton>
-                    <BButton size="sm" :disabled="!dirty || saving" variant="primary" @click="saveNow">
-                        Save
-                    </BButton>
-                </div>
-
-                <div class="roll-results-panel">
-                    <div class="d-flex align-items-center mb-1">
-                        <strong>Roll Results</strong>
-                        <BButton
-                            size="sm"
-                            variant="outline-secondary"
-                            class="ms-auto"
-                            :disabled="rollLog.length === 0"
-                            @click="clearRollLog"
-                        >
-                            Clear
-                        </BButton>
-                    </div>
-                    <div v-if="rollLog.length === 0" class="small text-muted">
-                        No rolls yet.
-                    </div>
-                    <div v-else class="roll-results-list">
-                        <div v-for="(entry, index) in rollLog" :key="index" class="roll-result-entry small">
-                            <div class="d-flex">
-                                <span class="text-muted">{{ entry.timestamp }}</span>
-                                <span class="ms-2">{{ entry.rollType }}: {{ entry.label }}</span>
-                                <span v-if="entry.passed !== null" class="ms-auto" :class="entry.passed ? 'text-success' : 'text-danger'">
-                                    <strong>{{ entry.passed ? 'PASS' : 'FAIL' }}</strong>
-                                </span>
+            <div class="sheet-content">
+                <div class="d-flex flex-wrap gap-3 align-items-start mb-3 header-bar">
+                    <div class="middle-header-col">
+                        <div class="middle-header-content dw-card">
+                            <h3 class="m-0">
+                                {{ characterName }}
+                            </h3>
+                            <div class="small text-muted">
+                                <div>
+                                    HP: <strong>{{ toNumber(details.hpCurrent) }} / {{ toNumber(details.hpMax) }} ({{ hpPercent }})</strong>
+                                </div>
+                                <BProgress class="mt-1 mb-1" height="6px">
+                                    <BProgressBar :value="hpPercentValue" />
+                                </BProgress>
+                                <div>
+                                    <span v-if="dirty" class="badge bg-warning text-dark me-2">● Unsaved</span>
+                                    <span v-else class="badge bg-success me-2">✓ Saved</span>
+                                    <span v-if="saving" class="ms-1">Saving…</span>
+                                    <span v-else-if="lastSavedAt" class="ms-1">Last saved: {{ lastSavedAt }}</span>
+                                </div>
                             </div>
-                            <div>
-                                {{ entry.formula }} => d20({{ entry.die }}) + {{ entry.bonus }} = {{ entry.total }}
-                                <span v-if="entry.target !== null">
-                                    vs {{ entry.target }}
-                                </span>
+
+                            <div class="d-flex gap-1 mt-2 portrait-input-row">
+                                <BFormInput
+                                    v-model="portraitUrl"
+                                    placeholder="Portrait URL"
+                                    size="sm"
+                                />
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-secondary"
+                                    :disabled="!portraitUrl"
+                                    @click="clearPortrait"
+                                >
+                                    Clear
+                                </button>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <BRow class="g-3">
-            <BCol cols="12" lg="4">
-                <RpgkCard title="Identity">
-                    <BRow class="g-2">
-                        <BCol cols="12">
-                            <BFormGroup label="Class">
-                                <BFormInput v-model="details.identity.className" />
-                            </BFormGroup>
-                        </BCol>
-                        <BCol cols="12">
-                            <BFormGroup label="Race">
-                                <BFormInput v-model="details.identity.race" />
-                            </BFormGroup>
-                        </BCol>
-                        <BCol cols="12">
-                            <BFormGroup label="Alignment">
-                                <BFormInput v-model="details.identity.alignment" />
-                            </BFormGroup>
-                        </BCol>
-                        <BCol cols="12">
-                            <BFormGroup label="Deity">
-                                <BFormInput v-model="details.identity.deity" />
-                            </BFormGroup>
-                        </BCol>
-                        <BCol cols="12">
-                            <BFormGroup label="Background">
-                                <BFormInput v-model="details.identity.background" />
-                            </BFormGroup>
-                        </BCol>
-                    </BRow>
-                </RpgkCard>
+                        <RpgkCard title="Abilities" class="mt-3 dw-card">
+                            <div class="d-flex justify-content-end mb-2">
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-secondary"
+                                    @click="openAbilitiesModal"
+                                >
+                                    Edit
+                                </button>
+                            </div>
 
-                <RpgkCard title="Combat" class="mt-3">
-                    <BRow class="g-2">
-                        <BCol cols="6">
-                            <BFormGroup label="HP (Current)">
-                                <BFormInput v-model.number="details.hpCurrent" type="number" />
-                            </BFormGroup>
-                        </BCol>
-                        <BCol cols="6">
-                            <BFormGroup label="HP (Max)">
-                                <BFormInput v-model.number="details.hpMax" type="number" />
-                            </BFormGroup>
-                        </BCol>
-                        <BCol cols="6">
-                            <BFormGroup label="AC">
-                                <BFormInput v-model.number="details.ac" type="number" />
-                            </BFormGroup>
-                        </BCol>
-                        <BCol cols="6">
-                            <BFormGroup label="Attack Bonus">
-                                <BFormInput v-model.number="details.attack" type="number" />
-                            </BFormGroup>
-                        </BCol>
-                    </BRow>
+                            <BRow class="g-2">
+                                <BCol v-for="ability in abilityList" :key="ability.key" sm="6" md="6" class="mb-2">
+                                    <div class="ability-tile">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <div class="fw-semibold">
+                                                {{ ability.label }}
+                                            </div>
+                                            <div class="ms-auto d-flex gap-2 align-items-center">
+                                                <span class="badge bg-light text-dark">
+                                                    Mod: {{ abilityMod(ability.key) }}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm btn-outline-secondary"
+                                                    @click="rollD20(abilityModNumber(ability.key), ability.label)"
+                                                >
+                                                    Roll
+                                                </button>
+                                            </div>
+                                        </div>
 
-                    <div class="small text-muted mt-2">
-                        <span class="me-2">HP %: <strong>{{ hpPercent }}</strong></span>
-                        <span>Attack roll: <strong>d20 + {{ details.attack }}</strong></span>
-                    </div>
-                </RpgkCard>
-
-                <RpgkCard title="Advancement" class="mt-3">
-                    <BRow class="g-2">
-                        <BCol cols="4">
-                            <BFormGroup label="Level">
-                                <BFormInput v-model.number="details.advancement.level" type="number" />
-                            </BFormGroup>
-                        </BCol>
-                        <BCol cols="4">
-                            <BFormGroup label="XP">
-                                <BFormInput v-model.number="details.advancement.xp" type="number" />
-                            </BFormGroup>
-                        </BCol>
-                        <BCol cols="4">
-                            <BFormGroup label="Next">
-                                <BFormInput v-model.number="details.advancement.nextLevel" type="number" />
-                            </BFormGroup>
-                        </BCol>
-                    </BRow>
-                </RpgkCard>
-            </BCol>
-
-            <BCol cols="12" lg="8">
-                <RpgkCard title="Abilities">
-                    <BRow class="g-2">
-                        <BCol v-for="ability in abilityList" :key="ability.key" md="4" class="mb-2">
-                            <div class="ability-tile">
-                                <div class="d-flex align-items-center mb-2">
-                                    <div class="fw-semibold">
-                                        {{ ability.label }}
+                                        <div class="small text-muted">
+                                            Score: <strong>{{ toNumber(details.abilities?.[ability.key]?.score) }}</strong>
+                                        </div>
                                     </div>
-                                    <div class="ms-auto d-flex gap-2 align-items-center">
-                                        <span class="badge bg-light text-dark">
-                                            Mod: {{ abilityMod(ability.key) }}
-                                        </span>
-                                        <BButton
-                                            size="sm"
-                                            variant="outline-secondary"
-                                            @click="rollD20(abilityModNumber(ability.key), ability.label)"
+                                </BCol>
+                            </BRow>
+
+                            <div
+                                v-if="showAbilitiesModal"
+                                class="dw-modal-backdrop"
+                                role="dialog"
+                                aria-modal="true"
+                                aria-labelledby="abilities-modal-title"
+                                @click.self="cancelAbilitiesModal"
+                            >
+                                <div class="dw-modal">
+                                    <div class="dw-modal-header">
+                                        <h5 id="abilities-modal-title" class="m-0">
+                                            Edit Characteristics
+                                        </h5>
+                                    </div>
+                                    <div class="dw-modal-body">
+                                        <BRow class="g-2">
+                                            <BCol v-for="ability in abilityList" :key="`edit-${ ability.key }`" cols="6">
+                                                <BFormGroup :label="ability.label">
+                                                    <BFormInput v-model.number="abilityDraft[ability.key]" type="number" />
+                                                </BFormGroup>
+                                            </BCol>
+                                        </BRow>
+                                    </div>
+                                    <div class="dw-modal-footer">
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-outline-secondary"
+                                            @click="cancelAbilitiesModal"
                                         >
-                                            Roll
-                                        </BButton>
+                                            Cancel
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-primary" @click="saveAbilitiesModal">
+                                            Save
+                                        </button>
                                     </div>
                                 </div>
-
-                                <BFormGroup label="Score" label-class="small text-muted">
-                                    <BFormInput v-model.number="details.abilities[ability.key].score" type="number" />
-                                </BFormGroup>
                             </div>
-                        </BCol>
-                    </BRow>
-                </RpgkCard>
+                        </RpgkCard>
+                    </div>
+
+                    <div class="d-flex flex-column align-items-end header-rolls-column">
+                        <div class="d-flex gap-2 align-items-center mb-2 w-100 header-actions-row">
+                            <BFormInput v-model="rollExpr" class="roll-input" placeholder="1d20 + 2" size="sm" />
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-primary"
+                                @click="roll(rollExpr)"
+                            >
+                                Roll
+                            </button>
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-primary"
+                                :disabled="!dirty || saving"
+                                @click="saveNow"
+                            >
+                                Save
+                            </button>
+                        </div>
+
+                        <div class="roll-results-panel dw-card">
+                            <div class="d-flex align-items-center roll-results-header">
+                                <strong>Roll Results</strong>
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-secondary ms-auto"
+                                    :disabled="rollLog.length === 0"
+                                    @click="clearRollLog"
+                                >
+                                    Clear
+                                </button>
+                            </div>
+                            <div class="roll-results-body">
+                                <div v-if="rollLog.length === 0" class="small text-muted">
+                                    No rolls yet.
+                                </div>
+                                <div v-else class="roll-results-list">
+                                    <div v-for="(entry, index) in rollLog" :key="index" class="roll-result-entry small">
+                                        <div class="d-flex">
+                                            <span class="text-muted">{{ entry.timestamp }}</span>
+                                            <span class="ms-2">{{ entry.rollType }}: {{ entry.label }}</span>
+                                            <span v-if="entry.passed !== null" class="ms-auto" :class="entry.passed ? 'text-success' : 'text-danger'">
+                                                <strong>{{ entry.passed ? 'PASS' : 'FAIL' }}</strong>
+                                            </span>
+                                        </div>
+                                        <div>
+                                            {{ entry.formula }} => d20({{ entry.die }}) + {{ entry.bonus }} = {{ entry.total }}
+                                            <span v-if="entry.target !== null">
+                                                vs {{ entry.target }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <BRow class="g-3 mb-3">
+                    <BCol cols="12" lg="6">
+                        <RpgkCard title="Identity" class="dw-card">
+                            <BRow class="g-2">
+                                <BCol cols="12" md="6">
+                                    <BFormGroup label="Class">
+                                        <BFormInput v-model="details.identity.className" />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol cols="12" md="6">
+                                    <BFormGroup label="Race">
+                                        <BFormInput v-model="details.identity.race" />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol cols="12" md="6">
+                                    <BFormGroup label="Alignment">
+                                        <BFormInput v-model="details.identity.alignment" />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol cols="12" md="6">
+                                    <BFormGroup label="Deity">
+                                        <BFormInput v-model="details.identity.deity" />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol cols="12">
+                                    <BFormGroup label="Background">
+                                        <BFormInput v-model="details.identity.background" />
+                                    </BFormGroup>
+                                </BCol>
+                            </BRow>
+                        </RpgkCard>
+
+                        <RpgkCard title="Advancement" class="mt-3 dw-card">
+                            <BRow class="g-2">
+                                <BCol cols="4">
+                                    <BFormGroup label="Level">
+                                        <BFormInput v-model.number="details.advancement.level" type="number" />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol cols="4">
+                                    <BFormGroup label="XP">
+                                        <BFormInput v-model.number="details.advancement.xp" type="number" />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol cols="4">
+                                    <BFormGroup label="Next">
+                                        <BFormInput v-model.number="details.advancement.nextLevel" type="number" />
+                                    </BFormGroup>
+                                </BCol>
+                            </BRow>
+                        </RpgkCard>
+                    </BCol>
+
+                    <BCol cols="12" lg="6">
+                        <RpgkCard title="Combat" class="dw-card">
+                            <BRow class="g-2">
+                                <BCol cols="6">
+                                    <BFormGroup label="HP (Current)">
+                                        <BFormInput v-model.number="details.hpCurrent" type="number" />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol cols="6">
+                                    <BFormGroup label="HP (Max)">
+                                        <BFormInput v-model.number="details.hpMax" type="number" />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol cols="6">
+                                    <BFormGroup label="AC">
+                                        <BFormInput v-model.number="details.ac" type="number" />
+                                    </BFormGroup>
+                                </BCol>
+                                <BCol cols="6">
+                                    <BFormGroup label="Attack Bonus">
+                                        <BFormInput v-model.number="details.attack" type="number" />
+                                    </BFormGroup>
+                                </BCol>
+                            </BRow>
+
+                            <div class="small text-muted mt-2">
+                                <span class="me-2">HP %: <strong>{{ hpPercent }}</strong></span>
+                                <span>Attack roll: <strong>d20 + {{ details.attack }}</strong></span>
+                            </div>
+                        </RpgkCard>
+                    </BCol>
+                </BRow>
 
                 <BRow class="g-3 mt-0">
                     <BCol cols="12" lg="6">
-                        <RpgkCard title="Save Targets">
+                        <RpgkCard title="Save Targets" class="dw-card">
                             <div class="d-flex gap-3 align-items-start">
                                 <div class="flex-grow-1 save-targets-grid">
                                     <div v-for="save in saveList" :key="save.key" class="save-target-item">
@@ -219,13 +287,13 @@
                                             <BFormGroup :label="save.label">
                                                 <div class="d-flex gap-2">
                                                     <BFormInput v-model.number="details.saves[save.key]" type="number" />
-                                                    <BButton
-                                                        size="sm"
-                                                        variant="outline-secondary"
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-sm btn-outline-secondary"
                                                         @click="rollSaveTarget(save.key)"
                                                     >
                                                         Roll
-                                                    </BButton>
+                                                    </button>
                                                 </div>
                                             </BFormGroup>
                                         </div>
@@ -251,7 +319,7 @@
                             </div>
                         </RpgkCard>
 
-                        <RpgkCard title="Movement" class="mt-3">
+                        <RpgkCard title="Movement" class="mt-3 dw-card">
                             <BRow class="g-2">
                                 <BCol cols="12">
                                     <BFormGroup label="Speed (ft/round)">
@@ -273,7 +341,7 @@
                     </BCol>
 
                     <BCol cols="12" lg="6">
-                        <RpgkCard title="Skills">
+                        <RpgkCard title="Skills" class="dw-card">
                             <BRow class="g-2">
                                 <BCol cols="6">
                                     <BFormGroup label="Listen">
@@ -298,7 +366,7 @@
                             </BRow>
                         </RpgkCard>
 
-                        <RpgkCard title="Inventory" class="mt-3">
+                        <RpgkCard title="Inventory" class="mt-3 dw-card">
                             <BFormGroup label="Gear (free text)">
                                 <BFormTextarea v-model="details.inventory.gearText" rows="6" />
                             </BFormGroup>
@@ -307,9 +375,13 @@
                                 <h6 class="m-0">
                                     Item Weights
                                 </h6>
-                                <BButton size="sm" variant="outline-secondary" class="ms-auto" @click="addInventoryItem">
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-secondary ms-auto"
+                                    @click="addInventoryItem"
+                                >
                                     Add Item
-                                </BButton>
+                                </button>
                             </div>
 
                             <div v-if="Array.isArray(details.inventory.items) && details.inventory.items.length > 0">
@@ -329,14 +401,13 @@
                                         </BFormGroup>
                                     </BCol>
                                     <BCol cols="1">
-                                        <BButton
-                                            size="sm"
-                                            variant="outline-danger"
-                                            class="w-100"
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-outline-danger w-100"
                                             @click="removeInventoryItem(index)"
                                         >
                                             ×
-                                        </BButton>
+                                        </button>
                                     </BCol>
                                 </BRow>
                             </div>
@@ -385,15 +456,15 @@
                     </BCol>
                 </BRow>
 
-                <RpgkCard title="Notes" class="mt-3">
+                <RpgkCard title="Notes" class="mt-3 dw-card">
                     <BFormTextarea
                         v-model="details.notes"
                         rows="6"
                         placeholder="Session notes, NPCs, hooks, reminders…"
                     />
                 </RpgkCard>
-            </BCol>
-        </BRow>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -462,6 +533,23 @@
     opacity: 1;
 }
 
+.dw-card,
+:deep(.dw-card) {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+}
+
+:deep(.dw-card .card-body) {
+    padding: 12px 14px;
+}
+
+/* Keep Bootstrap row gutters from drawing negative-margin tick marks at card edges */
+:deep(.dw-card .row) {
+    margin-left: 0;
+    margin-right: 0;
+}
+
 /* The little "Mod:+0" badges: make them pop slightly */
 :deep(.badge),
 :deep(.pill),
@@ -483,15 +571,40 @@
     background: rgba(255, 255, 255, 0.06) !important;
 }
 
+.sheet-layout {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.portrait-rail {
+    width: 300px;
+}
+
+.sheet-content {
+    min-width: 0;
+}
+
+.middle-header-col {
+    flex: 1 1 400px;
+    min-width: 360px;
+}
+
+.middle-header-content {
+    padding-left: 0;
+}
+
 .portrait-wrap {
-    width: 80px;
-    min-width: 80px;
+    width: 300px;
+    min-width: 300px;
+    height: 450px;
 }
 
 .portrait-thumb,
 .portrait-placeholder {
-    width: 80px;
-    height: 80px;
+    width: 300px;
+    height: 450px;
     border-radius: 8px;
 }
 
@@ -514,27 +627,87 @@
 }
 
 .portrait-input-row {
-    max-width: 420px;
+    max-width: 460px;
 }
 
 .header-rolls-column {
+    flex: 0 0 380px;
     width: 380px;
-    min-width: 320px;
+    min-width: 360px;
 }
 
 .roll-results-panel {
-    width: 100%;
-    min-width: 320px;
+    width: 380px;
+    min-width: 360px;
     max-width: 420px;
+    height: 250px;
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 8px;
     padding: 0.5rem;
     background: rgba(255, 255, 255, 0.04);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+}
+
+.roll-results-header {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.roll-results-body {
+    padding: 12px 14px;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 .roll-results-list {
-    max-height: 220px;
+    min-height: 0;
+}
+
+.dw-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1050;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.dw-modal {
+    width: min(560px, 100%);
+    max-height: calc(100vh - 2rem);
+    display: flex;
+    flex-direction: column;
+    background: #1f2430;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.dw-modal-header,
+.dw-modal-footer {
+    padding: 0.75rem 1rem;
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.dw-modal-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.dw-modal-body {
+    padding: 0.75rem 1rem;
     overflow-y: auto;
+}
+
+.dw-modal-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
 }
 
 .roll-result-entry + .roll-result-entry {
@@ -564,30 +737,47 @@
 }
 
 @media (max-width: 576px) {
+    .sheet-layout {
+        grid-template-columns: 1fr;
+    }
+
     .header-bar {
         flex-wrap: wrap;
     }
 
+    .portrait-rail,
+    .middle-header-col,
     .header-rolls-column {
         width: 100%;
         min-width: 0;
+        flex: 1 1 100%;
+    }
+
+    .header-rolls-column {
         margin-top: 0.5rem;
     }
 
+    .middle-header-content {
+        padding-left: 0;
+    }
+
     .roll-results-panel {
+        width: 100%;
         min-width: 0;
         max-width: 100%;
     }
 
     .portrait-wrap {
-        width: 64px;
-        min-width: 64px;
+        width: 100%;
+        min-width: 0;
+        height: auto;
+        aspect-ratio: 2 / 3;
     }
 
     .portrait-thumb,
     .portrait-placeholder {
-        width: 64px;
-        height: 64px;
+        width: 100%;
+        height: 100%;
     }
 
     .mr-column {
@@ -812,6 +1002,15 @@
     const lastSavedAt = ref<string>('');
     const portraitLoadError = ref<boolean>(false);
     const saveBonus = ref<number>(0);
+    const showAbilitiesModal = ref<boolean>(false);
+    const abilityDraft = ref<Record<AbilityKey, number>>({
+        str: 10,
+        dex: 10,
+        con: 10,
+        int: 10,
+        wis: 10,
+        cha: 10,
+    });
     const rollLog = ref<{
         timestamp : string;
         rollType : string;
@@ -1014,6 +1213,40 @@
     function clearPortrait() : void
     {
         portraitUrl.value = '';
+    }
+
+    function openAbilitiesModal() : void
+    {
+        abilityDraft.value = {
+            str: toNumber(details.value.abilities?.str?.score),
+            dex: toNumber(details.value.abilities?.dex?.score),
+            con: toNumber(details.value.abilities?.con?.score),
+            int: toNumber(details.value.abilities?.int?.score),
+            wis: toNumber(details.value.abilities?.wis?.score),
+            cha: toNumber(details.value.abilities?.cha?.score),
+        };
+        showAbilitiesModal.value = true;
+    }
+
+    function saveAbilitiesModal() : void
+    {
+        if(!details.value.abilities)
+        {
+            details.value.abilities = {};
+        }
+
+        for(const ability of abilityList)
+        {
+            const score = toNumber(abilityDraft.value[ability.key]);
+            details.value.abilities[ability.key] = { score };
+        }
+
+        showAbilitiesModal.value = false;
+    }
+
+    function cancelAbilitiesModal() : void
+    {
+        showAbilitiesModal.value = false;
     }
 
     let autosaveTimer : number | null = null;

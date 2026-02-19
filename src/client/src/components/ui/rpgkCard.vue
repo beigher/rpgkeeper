@@ -13,14 +13,14 @@
     >
         <template #header>
             <slot name="header">
-                <div class="d-flex">
-                    <h5 class="align-items-center d-flex text-nowrap m-0 flex-grow-0 flex-shrink-0 w-auto">
+                <div class="card-header-row">
+                    <h5 class="card-header-title align-items-center d-flex text-nowrap m-0">
                         <Fa v-if="icon" class="me-1" :icon="icon" />
                         <span class="d-none d-md-inline">
                             {{ title }}
                         </span>
                     </h5>
-                    <div class="ms-auto">
+                    <div class="card-header-right">
                         <slot name="header-right" />
                     </div>
                 </div>
@@ -43,6 +43,25 @@
 
         .card-header {
             min-height: 57px;
+            overflow: visible;
+        }
+
+        .card-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            width: 100%;
+            overflow: visible;
+        }
+
+        .card-header-title {
+            flex: 0 1 auto;
+            min-width: 0;
+        }
+
+        .card-header-right {
+            flex: 0 0 auto;
         }
 
         &.fill {
