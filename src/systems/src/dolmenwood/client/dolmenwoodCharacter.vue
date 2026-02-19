@@ -2,7 +2,7 @@
     <div class="sheet p-3">
         <div class="sheet-layout">
             <div class="portrait-rail">
-                <div class="portrait-wrap dw-card">
+                <RpgkCard title="Portrait" class="portrait-wrap dw-card">
                     <img
                         v-if="portraitUrl && !portraitLoadError"
                         :src="portraitUrl"
@@ -13,13 +13,71 @@
                     <div v-else class="portrait-placeholder">
                         No portrait
                     </div>
-                </div>
+                </RpgkCard>
+
+                <RpgkCard title="Identity" class="mt-3 dw-card">
+                    <BRow class="g-2">
+                        <BCol cols="12" md="6">
+                            <BFormGroup label="Class">
+                                <BFormInput v-model="details.identity.className" />
+                            </BFormGroup>
+                        </BCol>
+                        <BCol cols="12" md="6">
+                            <BFormGroup label="Race">
+                                <BFormInput v-model="details.identity.race" />
+                            </BFormGroup>
+                        </BCol>
+                        <BCol cols="12" md="6">
+                            <BFormGroup label="Alignment">
+                                <BFormInput v-model="details.identity.alignment" />
+                            </BFormGroup>
+                        </BCol>
+                        <BCol cols="12" md="6">
+                            <BFormGroup label="Deity">
+                                <BFormInput v-model="details.identity.deity" />
+                            </BFormGroup>
+                        </BCol>
+                        <BCol cols="12">
+                            <BFormGroup label="Background">
+                                <BFormInput v-model="details.identity.background" />
+                            </BFormGroup>
+                        </BCol>
+                    </BRow>
+                </RpgkCard>
+
+                <RpgkCard title="Advancement" class="mt-3 dw-card">
+                    <BRow class="g-2">
+                        <BCol cols="4">
+                            <BFormGroup label="Level">
+                                <BFormInput v-model.number="details.advancement.level" type="number" />
+                            </BFormGroup>
+                        </BCol>
+                        <BCol cols="4">
+                            <BFormGroup label="XP">
+                                <BFormInput v-model.number="details.advancement.xp" type="number" />
+                            </BFormGroup>
+                        </BCol>
+                        <BCol cols="4">
+                            <BFormGroup label="Next">
+                                <BFormInput v-model.number="details.advancement.nextLevel" type="number" />
+                            </BFormGroup>
+                        </BCol>
+                    </BRow>
+                </RpgkCard>
+
+                <RpgkCard title="Description" class="mt-3 dw-card">
+                    <BFormTextarea
+                        v-model="characterDescription"
+                        rows="4"
+                        placeholder="Character bio and description…"
+                    />
+                </RpgkCard>
             </div>
 
             <div class="sheet-content">
                 <div class="d-flex flex-wrap gap-3 align-items-start mb-3 header-bar">
                     <div class="middle-header-col">
-                        <div class="middle-header-content dw-card">
+                        <RpgkCard title="Overview" class="middle-header-content dw-card">
                             <h3 class="m-0">
                                 {{ characterName }}
                             </h3>
@@ -53,7 +111,7 @@
                                     Clear
                                 </button>
                             </div>
-                        </div>
+                        </RpgkCard>
 
                         <RpgkCard title="Abilities" class="mt-3 dw-card">
                             <div class="d-flex justify-content-end mb-2">
@@ -154,18 +212,17 @@
                             </button>
                         </div>
 
-                        <div class="roll-results-panel dw-card">
-                            <div class="d-flex align-items-center roll-results-header">
-                                <strong>Roll Results</strong>
+                        <RpgkCard title="Roll Results" class="roll-results-panel dw-card">
+                            <template #header-right>
                                 <button
                                     type="button"
-                                    class="btn btn-sm btn-outline-secondary ms-auto"
+                                    class="btn btn-sm btn-outline-secondary"
                                     :disabled="rollLog.length === 0"
                                     @click="clearRollLog"
                                 >
                                     Clear
                                 </button>
-                            </div>
+                            </template>
                             <div class="roll-results-body">
                                 <div v-if="rollLog.length === 0" class="small text-muted">
                                     No rolls yet.
@@ -188,63 +245,11 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </RpgkCard>
                     </div>
                 </div>
                 <BRow class="g-3 mb-3">
-                    <BCol cols="12" lg="6">
-                        <RpgkCard title="Identity" class="dw-card">
-                            <BRow class="g-2">
-                                <BCol cols="12" md="6">
-                                    <BFormGroup label="Class">
-                                        <BFormInput v-model="details.identity.className" />
-                                    </BFormGroup>
-                                </BCol>
-                                <BCol cols="12" md="6">
-                                    <BFormGroup label="Race">
-                                        <BFormInput v-model="details.identity.race" />
-                                    </BFormGroup>
-                                </BCol>
-                                <BCol cols="12" md="6">
-                                    <BFormGroup label="Alignment">
-                                        <BFormInput v-model="details.identity.alignment" />
-                                    </BFormGroup>
-                                </BCol>
-                                <BCol cols="12" md="6">
-                                    <BFormGroup label="Deity">
-                                        <BFormInput v-model="details.identity.deity" />
-                                    </BFormGroup>
-                                </BCol>
-                                <BCol cols="12">
-                                    <BFormGroup label="Background">
-                                        <BFormInput v-model="details.identity.background" />
-                                    </BFormGroup>
-                                </BCol>
-                            </BRow>
-                        </RpgkCard>
-
-                        <RpgkCard title="Advancement" class="mt-3 dw-card">
-                            <BRow class="g-2">
-                                <BCol cols="4">
-                                    <BFormGroup label="Level">
-                                        <BFormInput v-model.number="details.advancement.level" type="number" />
-                                    </BFormGroup>
-                                </BCol>
-                                <BCol cols="4">
-                                    <BFormGroup label="XP">
-                                        <BFormInput v-model.number="details.advancement.xp" type="number" />
-                                    </BFormGroup>
-                                </BCol>
-                                <BCol cols="4">
-                                    <BFormGroup label="Next">
-                                        <BFormInput v-model.number="details.advancement.nextLevel" type="number" />
-                                    </BFormGroup>
-                                </BCol>
-                            </BRow>
-                        </RpgkCard>
-                    </BCol>
-
-                    <BCol cols="12" lg="6">
+                    <BCol cols="12">
                         <RpgkCard title="Combat" class="dw-card">
                             <BRow class="g-2">
                                 <BCol cols="6">
@@ -608,6 +613,10 @@
     width: 300px;
     min-width: 300px;
     height: 450px;
+}
+
+.portrait-wrap :deep(.card-body) {
+    padding: 0;
 }
 
 .portrait-thumb,
@@ -1052,6 +1061,20 @@
         },
     });
 
+    const characterDescription = computed<string>({
+        get() : string
+        {
+            return current.value?.description ?? '';
+        },
+        set(value : string)
+        {
+            if(current.value)
+            {
+                current.value.description = value;
+            }
+        },
+    });
+
     const hpPercent = computed<string>(() => 
     {
         const max = toNumber(details.value.hpMax);
@@ -1308,6 +1331,20 @@
         if(!portraitInitialized)
         {
             portraitInitialized = true;
+            return;
+        }
+
+        dirty.value = true;
+        scheduleAutosave();
+    });
+
+    let descriptionInitialized = false;
+
+    watch(characterDescription, () =>
+    {
+        if(!descriptionInitialized)
+        {
+            descriptionInitialized = true;
             return;
         }
 
