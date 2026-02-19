@@ -533,18 +533,27 @@
     opacity: 1;
 }
 
-.dw-card,
-:deep(.dw-card) {
+.dw-card :deep(.rpgkeeper-card),
+:deep(.dw-card.rpgkeeper-card) {
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 8px;
 }
 
+.dw-card :deep(.card-header),
+:deep(.dw-card .card-header) {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    padding: 10px 14px;
+}
+
+.dw-card :deep(.card-body),
 :deep(.dw-card .card-body) {
     padding: 12px 14px;
 }
 
 /* Keep Bootstrap row gutters from drawing negative-margin tick marks at card edges */
+.dw-card :deep(.row),
 :deep(.dw-card .row) {
     margin-left: 0;
     margin-right: 0;
